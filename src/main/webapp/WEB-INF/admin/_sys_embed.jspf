@@ -1,0 +1,186 @@
+<%-- "Audit & System" section of the admin dashboard. Included once from admin_dashbaord.jsp,
+     inside <div class="content">, so it opens exactly like Reports / Payroll (#system).
+     The pages are loaded on demand from /system/* as fragments (X-Sys-Embed header). --%>
+    <div class="section" id="system">
+        <div class="section-header">
+            <div>
+                <h2>&#x1F6E1;&#xFE0F; Audit &amp; System</h2>
+                <p>Audit trail, login activity, errors, system settings and database backups.</p>
+            </div>
+        </div>
+        <div class="sys">
+<%@ include file="_sys_style.jspf" %>
+            <div class="sys-tabs" id="sysTabs">
+                <button type="button" class="sys-tab" data-sys-tab="dashboard"><svg class="sx-ic"><use href="#sx-i-dash"/></svg>Overview</button>
+                <button type="button" class="sys-tab" data-sys-tab="audit-logs"><svg class="sx-ic"><use href="#sx-i-file"/></svg>Audit Logs</button>
+                <button type="button" class="sys-tab" data-sys-tab="login-history"><svg class="sx-ic"><use href="#sx-i-login"/></svg>Login History</button>
+                <button type="button" class="sys-tab" data-sys-tab="errors"><svg class="sx-ic"><use href="#sx-i-alert"/></svg>System Errors</button>
+                <button type="button" class="sys-tab" data-sys-tab="users"><svg class="sx-ic"><use href="#sx-i-users"/></svg>Users &amp; Accounts</button>
+                <button type="button" class="sys-tab" data-sys-tab="settings"><svg class="sx-ic"><use href="#sx-i-sliders"/></svg>System Settings</button>
+                <button type="button" class="sys-tab" data-sys-tab="backups"><svg class="sx-ic"><use href="#sx-i-db"/></svg>Backups</button>
+            </div>
+            <div id="sysBody"><div class="sys-spin">Loading&hellip;</div></div>
+        </div>
+    </div>
+<script>
+(function(){
+    var BASE="<%= cp %>/system/";
+    var TABS=["dashboard","audit-logs","login-history","errors","users","settings","backups"];
+    var bodyEl=document.getElementById("sysBody"), tabsEl=document.getElementById("sysTabs");
+    var loaded=false, ticket=0;
+    if(!bodyEl||!tabsEl) return;
+
+    function store(k,v){ try{ if(v===undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k,v); }catch(e){} return null; }
+
+    function markActive(tab){
+        Array.prototype.forEach.call(tabsEl.querySelectorAll(".sys-tab"),function(b){
+            var on=b.getAttribute("data-sys-tab")===tab;
+            b.classList.toggle("on",on);
+            if(on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+        });
+    }
+    function showError(msg){
+        bodyEl.innerHTML='<div class="alert err"><svg class="sx-ic"><use href="#sx-i-x"/></svg><div></div></div>';
+        bodyEl.querySelector(".alert div").textContent=msg;
+    }
+    function flash(msg){
+        var old=bodyEl.querySelector(".sx-flash"); if(old) old.remove();
+        var d=document.createElement("div"); d.className="alert err sx-flash";
+        d.innerHTML='<svg class="sx-ic"><use href="#sx-i-x"/></svg><div></div>';
+        d.querySelector("div").textContent=msg;
+        bodyEl.insertBefore(d,bodyEl.firstChild);
+    }
+    function tabOf(url){
+        var m=/\/system\/([a-z-]+)/.exec(url||"");
+        return m&&TABS.indexOf(m[1])>-1?m[1]:null;
+    }
+
+    /* fetch a /system page as a fragment and show it in the section */
+    function load(url,opts,keepScroll){
+        var my=++ticket, o=opts||{};
+        o.credentials="same-origin";
+        o.headers=o.headers||{};
+        o.headers["X-Sys-Embed"]="1";
+        bodyEl.classList.add("sys-loading");
+        fetch(url,o).then(function(r){
+            if(r.redirected && r.url.indexOf("/system/")<0){ window.location.href=r.url; return null; }   /* e.g. session expired -> login page */
+            if(!r.ok){ throw new Error(r.status===403?"You do not have permission to open this page.":"The server could not complete the request (error "+r.status+"). Please try again."); }
+            return r.text().then(function(t){ return {t:t,url:r.url}; });
+        }).then(function(x){
+            if(!x||my!==ticket) return;
+            bodyEl.innerHTML=x.t;
+            loaded=true;
+            var t=tabOf(x.url); if(t){ markActive(t); store("sysTab",t); }
+            if(!keepScroll) window.scrollTo(0,0);
+        }).catch(function(e){
+            if(my===ticket) showError(e&&e.message?e.message:"Could not load this page.");
+        }).then(function(){ if(my===ticket) bodyEl.classList.remove("sys-loading"); });
+    }
+
+    function open(tab,keepScroll){
+        if(TABS.indexOf(tab)<0) tab="dashboard";
+        markActive(tab);
+        load(BASE+tab,null,keepScroll);
+    }
+    function ensure(){ if(!loaded) open(store("sysTab")||"dashboard",true); }
+
+    /* ---- company logo (System Settings): upload / remove straight away, without reloading the form ---- */
+    function csrfToken(){ var t=bodyEl.querySelector('input[name="csrfToken"]'); return t?t.value:""; }
+    function logoMsg(text,kind){
+        var m=document.getElementById("sxLogoMsg"); if(!m) return;
+        m.textContent=text; m.setAttribute("data-kind",kind||"");
+    }
+    function setLogo(url){
+        var box=document.getElementById("sxLogoBox"), rm=document.getElementById("sxLogoRm");
+        if(box){
+            box.textContent="";
+            if(url){ var i=document.createElement("img"); i.src=url; i.alt="Company logo"; box.appendChild(i); }
+            else{ var s=document.createElement("span"); s.textContent="No logo"; box.appendChild(s); }
+        }
+        if(rm) rm.disabled=!url;
+    }
+    function postLogo(fd){
+        fd.append("csrfToken",csrfToken());
+        return fetch(BASE+"settings",{method:"POST",credentials:"same-origin",headers:{"X-Sys-Embed":"1","X-CSRF-Token":csrfToken()},body:fd})
+            .then(function(r){ return r.json().catch(function(){ return {ok:false,message:"Unexpected response from the server ("+r.status+")."}; }); })
+            .catch(function(){ return {ok:false,message:"Could not reach the server."}; });
+    }
+    window.sxUploadLogo=function(input){
+        var f=input.files&&input.files[0]; if(!f) return;
+        if(f.size>2097152){ logoMsg("The image must be 2 MB or smaller.","err"); input.value=""; return; }
+        var fd=new FormData(); fd.append("action","uploadLogo"); fd.append("logo",f);
+        logoMsg("Uploading...","");
+        postLogo(fd).then(function(j){
+            if(j.ok){ setLogo(j.url); }
+            logoMsg(j.message||"",j.ok?"ok":"err");
+            input.value="";
+        });
+    };
+    window.sxRemoveLogo=function(){
+        if(!window.confirm("Remove the company logo?")) return;
+        var fd=new FormData(); fd.append("action","removeLogo");
+        postLogo(fd).then(function(j){
+            if(j.ok){ setLogo(""); }
+            logoMsg(j.message||"",j.ok?"ok":"err");
+        });
+    };
+
+    /* tabs, sidebar links and Quick Access tiles that carry data-sys-tab */
+    document.addEventListener("click",function(e){
+        var t=e.target.closest?e.target.closest("[data-sys-tab]"):null;
+        if(!t) return;
+        open(t.getAttribute("data-sys-tab"));
+    });
+
+    /* links inside the fragment stay inside the section (CSV export is a normal download) */
+    bodyEl.addEventListener("click",function(e){
+        var a=e.target.closest?e.target.closest("a"):null;
+        if(!a||e.defaultPrevented||e.button||e.ctrlKey||e.metaKey||e.shiftKey) return;
+        var href=a.getAttribute("href");
+        if(!href||href.charAt(0)==="#") return;
+        var u; try{ u=new URL(a.href,window.location.href); }catch(x){ return; }
+        if(u.origin!==window.location.origin||u.pathname.indexOf(BASE)!==0) return;
+        if(u.searchParams.get("export")==="csv") return;
+        if(u.searchParams.has("download")){
+            /* backup download: ask the server first, so a problem shows here instead of replacing the page */
+            e.preventDefault();
+            var go=u.pathname+u.search;
+            fetch(go+"&check=1",{credentials:"same-origin",headers:{"X-Sys-Embed":"1","Accept":"application/json"}})
+                .then(function(r){ return r.json(); })
+                .then(function(j){ if(j&&j.ok){ window.location.href=go; } else { flash((j&&j.message)||"The backup could not be downloaded."); } })
+                .catch(function(){ flash("Could not reach the server."); });
+            return;
+        }
+        e.preventDefault();
+        load(u.pathname+u.search);
+    });
+
+    /* forms inside the fragment (filters, save settings, backup, restore) */
+    bodyEl.addEventListener("submit",function(e){
+        var f=e.target;
+        if(e.defaultPrevented||!f||f.tagName!=="FORM") return;   /* inline confirm() may have cancelled it */
+        e.preventDefault();
+        var method=(f.getAttribute("method")||"get").toUpperCase();
+        var u=new URL(f.getAttribute("action")||window.location.href,window.location.href);
+        if(method!=="GET" && (f.getAttribute("enctype")||"").toLowerCase()==="multipart/form-data"){
+            /* file upload: send the form as multipart; the CSRF token also goes in a header */
+            var tok=f.querySelector('input[name="csrfToken"]');
+            load(u.pathname+u.search,{method:"POST",headers:{"X-CSRF-Token":tok?tok.value:""},body:new FormData(f)});
+            return;
+        }
+        var data=new URLSearchParams(new FormData(f)).toString();
+        if(method==="GET"){ u.search=data; load(u.pathname+u.search); }
+        else{ load(u.pathname+u.search,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:data}); }
+    });
+
+    window.addEventListener("hashchange",function(){ if(window.location.hash==="#system") ensure(); });
+    document.addEventListener("DOMContentLoaded",function(){
+        var q=null; try{ q=new URLSearchParams(window.location.search).get("sys"); }catch(e){}
+        if(q&&TABS.indexOf(q)>-1){
+            open(q,true);
+            try{ history.replaceState(null,"",window.location.pathname+"#system"); }catch(e){}
+            if(window.location.hash!=="#system") window.location.hash="#system";
+        }else if(window.location.hash==="#system"){ ensure(); }
+    });
+})();
+</script>

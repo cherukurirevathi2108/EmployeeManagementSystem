@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Employee Management System</title>
+
+    <style>
+        :root {
+            --primary: #3157d5;
+            --primary-dark: #2444b5;
+            --navy: #101c3a;
+            --text: #172033;
+            --muted: #718096;
+            --border: #e2e8f0;
+            --background: #f4f7fc;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        .page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .brand-panel {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px 9%;
+            color: white;
+            background:
+                radial-gradient(circle at 15% 85%,
+                    rgba(66, 113, 240, 0.30), transparent 35%),
+                linear-gradient(145deg, #101a35, #172c58 60%, #2347a0);
+        }
+
+        .brand-panel::before {
+            content: "";
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            right: -180px;
+            top: 15%;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 50%;
+            box-shadow:
+                0 0 0 45px rgba(255, 255, 255, 0.025),
+                0 0 0 90px rgba(255, 255, 255, 0.025);
+            pointer-events: none;
+        }
+
+        .brand-logo {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .logo-icon {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            font-size: 23px;
+        }
+
+        .logo-text {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .logo-icon.has-logo {
+            background: #ffffff;
+            padding: 5px;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 9px;
+        }
+
+        .brand-logo { transition: opacity .2s; }
+        .brand-logo.loading { opacity: 0; }
+
+        .logo-caption {
+            margin-top: 4px;
+            color: #b8c8ec;
+            font-size: 11px;
+            letter-spacing: 1.7px;
+            text-transform: uppercase;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            max-width: 490px;
+            margin: 65px auto;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.17);
+            border-radius: 30px;
+            color: #d9e5ff;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .eyebrow-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #75e0b0;
+        }
+
+        .brand-content h1 {
+            font-size: clamp(32px, 3.5vw, 46px);
+            line-height: 1.2;
+            letter-spacing: -1.2px;
+            font-weight: 700;
+            margin-bottom: 22px;
+        }
+
+        .brand-content h1 span {
+            color: #8eafff;
+        }
+
+        .brand-description {
+            color: #c2cce0;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .features {
+            list-style: none;
+            margin-top: 32px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .features li {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #e5ecfb;
+            font-size: 14px;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.10);
+            font-size: 18px;
+        }
+
+        .brand-footer {
+            position: relative;
+            z-index: 1;
+            color: #a8b8d8;
+            font-size: 12px;
+        }
+
+        /* Login form */
+
+        .form-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 45px 30px;
+            background: white;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .welcome-label {
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 13px;
+        }
+
+        .login-box h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.8px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 30px;
+        }
+
+        .notice {
+            display: none;
+            border-radius: 9px;
+            padding: 12px 14px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .notice:not(:empty) {
+            display: block;
+        }
+
+        .error {
+            background: #fff1f2;
+            color: #be123c;
+            border: 1px solid #fecdd3;
+        }
+
+        .success {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+        }
+
+        .form-group {
+            margin-bottom: 21px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 9px;
+            color: #26334a;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .field {
+            position: relative;
+        }
+
+        .field-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        .field input {
+            width: 100%;
+            height: 51px;
+            padding: 0 47px 0 44px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text);
+            background: #f9fbff;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s,
+                        background 0.2s;
+        }
+
+        .field input::placeholder {
+            color: #9aa6b8;
+        }
+
+        .field input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(49, 87, 213, 0.10);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            font-size: 17px;
+        }
+
+        .toggle-password:hover {
+            background: #edf2ff;
+        }
+
+        .login-button {
+            width: 100%;
+            height: 51px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg,
+                        var(--primary), var(--primary-dark));
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 7px 17px rgba(49, 87, 213, 0.22);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .login-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(49, 87, 213, 0.30);
+        }
+
+        .login-button:disabled {
+            opacity: 0.7;
+            cursor: wait;
+            transform: none;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 27px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .register-link a {
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+            margin-left: 4px;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .security-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin-top: 35px;
+            color: #8b98ac;
+            font-size: 12px;
+        }
+
+        .security-line {
+            height: 1px;
+            background: #edf0f5;
+            margin-top: 28px;
+        }
+
+        /* Responsive design */
+
+        @media (max-width: 900px) {
+            .page {
+                grid-template-columns: 1fr;
+            }
+
+            .brand-panel {
+                padding: 25px 28px;
+            }
+
+            .brand-content {
+                margin: 40px 0;
+            }
+
+            .brand-content h1 {
+                font-size: 30px;
+            }
+
+            .features,
+            .brand-footer {
+                display: none;
+            }
+
+            .brand-description {
+                font-size: 14px;
+            }
+
+            .form-panel {
+                padding: 40px 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .brand-panel {
+                padding: 22px 20px;
+            }
+
+            .brand-content {
+                margin: 30px 0;
+            }
+
+            .brand-content h1 {
+                font-size: 27px;
+            }
+
+            .form-panel {
+                padding: 32px 20px;
+            }
+
+            .login-box h2 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <aside class="brand-panel">
+
+        <div class="brand-logo loading" id="brandBox">
+            <div class="logo-icon" id="brandIcon">&#127970;</div>
+
+            <div>
+                <div class="logo-text" id="brandName">Employee Management</div>
+                <div class="logo-caption">Workforce Portal</div>
+            </div>
+        </div>
+
+        <div class="brand-content">
+
+            <div class="eyebrow">
+                <span class="eyebrow-dot"></span>
+                ONE PLATFORM. BETTER WORK.
+            </div>
+
+            <h1>
+                Manage your workforce.
+                <span>Achieve more.</span>
+            </h1>
+
+            <p class="brand-description">
+                A centralized workspace to manage employees, track
+                attendance, coordinate tasks and monitor team performance.
+            </p>
+
+            <ul class="features">
+                <li>
+                    <span class="feature-icon">&#128337;</span>
+                    <span>Smart attendance and leave management</span>
+                </li>
+
+                <li>
+                    <span class="feature-icon">&#128203;</span>
+                    <span>Task assignment and progress tracking</span>
+                </li>
+
+                <li>
+                    <span class="feature-icon">&#128202;</span>
+                    <span>Clear reports and team insights</span>
+                </li>
+            </ul>
+
+        </div>
+
+        <div class="brand-footer" id="brandFooter">
+            &copy; 2026 Employee Management System. All rights reserved.
+        </div>
+
+    </aside>
+
+    <main class="form-panel">
+
+        <div class="login-box">
+
+            <div class="welcome-label">Welcome Back</div>
+
+            <h2>Sign in to your account</h2>
+
+            <p class="subtitle">
+                Enter your credentials below to access your workspace.
+            </p>
+
+            <div id="message" class="notice"
+                 role="alert" aria-live="polite"></div>
+
+            <form action="login" method="post" id="loginForm">
+
+                <div class="form-group">
+
+                    <label for="loginId">Employee ID or Email</label>
+
+                    <div class="field">
+                        <span class="field-icon">&#128100;</span>
+
+                        <input
+                            type="text"
+                            id="loginId"
+                            name="loginId"
+                            placeholder="Enter your Employee ID or Email"
+                            autocomplete="username"
+                            autofocus
+                            required>
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="password">Password</label>
+
+                    <div class="field">
+                        <span class="field-icon">&#128274;</span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required>
+
+                        <button
+                            type="button"
+                            class="toggle-password"
+                            id="togglePassword"
+                            aria-label="Show password"
+                            title="Show or hide password">
+                            &#128065;
+                        </button>
+                    </div>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="login-button"
+                    id="loginButton">
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="register-link">
+                Don't have an account?
+                <a href="register.jsp">Create an account</a>
+            </div>
+
+            <div class="security-line"></div>
+
+            <div class="security-note">
+                &#128274;
+                Secure access to your employee workspace
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    (function () {
+
+        var params = new URLSearchParams(window.location.search);
+        var box = document.getElementById("message");
+
+        function show(type, text) {
+            box.className = "notice " + type;
+            box.textContent = text;
+        }
+
+        var error = params.get("error");
+
+        if (error === "invalid") {
+            show("error", "Invalid Employee ID/Email or Password.");
+        } else if (error === "failed") {
+            show("error", "Login failed. Please try again.");
+        } else if (params.has("logout")) {
+            show("success", "You have been logged out successfully.");
+        } else if (params.has("registered")) {
+            show("success", "Registration successful. Please sign in.");
+        }
+
+        var pwd = document.getElementById("password");
+        var toggle = document.getElementById("togglePassword");
+
+        toggle.addEventListener("click", function () {
+
+            var hidden = pwd.type === "password";
+
+            pwd.type = hidden ? "text" : "password";
+
+            toggle.setAttribute(
+                "aria-label",
+                hidden ? "Hide password" : "Show password"
+            );
+
+            toggle.innerHTML = hidden ? "&#128584;" : "&#128065;";
+        });
+
+        document.getElementById("loginForm")
+            .addEventListener("submit", function () {
+
+                var button = document.getElementById("loginButton");
+
+                button.disabled = true;
+                button.textContent = "Signing in...";
+            });
+
+    })();
+</script>
+
+<script>
+/* Company name + logo come from System Settings (public /branding endpoint). */
+(function () {
+    var box = document.getElementById("brandBox");
+    function show() { if (box) box.classList.remove("loading"); }
+    setTimeout(show, 1500);                       /* never leave the brand hidden */
+
+    fetch("branding", { credentials: "same-origin", headers: { "Accept": "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (b) {
+            if (!b || !b.name) return;
+            document.getElementById("brandName").textContent = b.name;
+            document.title = "Login | " + b.name;
+            var foot = document.getElementById("brandFooter");
+            if (foot) foot.textContent = "\u00A9 " + new Date().getFullYear() + " " + b.name + (/\.$/.test(b.name) ? "" : ".") + " All rights reserved.";
+            if (b.logo && /^(https:\/\/|\/(?!\/))/.test(b.logo)) {
+                var icon = document.getElementById("brandIcon");
+                var img = document.createElement("img");
+                img.alt = "";
+                img.onload = function () { icon.textContent = ""; icon.appendChild(img); icon.classList.add("has-logo"); };
+                img.src = b.logo;
+            }
+        })
+        .catch(function () { })
+        .then(show);
+})();
+</script>
+
+</body>
+</html>

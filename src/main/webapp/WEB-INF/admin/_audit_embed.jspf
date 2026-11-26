@@ -1,0 +1,58 @@
+<%-- Read-only audit log panel for the Employee and Manager dashboards.
+     Include inside a dashboard section:  <%@ include file="/WEB-INF/admin/_audit_embed.jspf" %>
+     The records come from /system/audit-logs (AuditLogServlet), which already limits them:
+     EMPLOYEE = own activity, MANAGER = own + team members. Nothing here can change data. --%>
+<div class="sys" id="auditSys">
+<%@ include file="_sys_style.jspf" %>
+    <div id="auditBody"><div class="sys-spin">Loading&hellip;</div></div>
+</div>
+<script>
+(function(){
+    var BASE="<%= request.getContextPath() %>/system/audit-logs";
+    var bodyEl=document.getElementById("auditBody");
+    var loaded=false, ticket=0;
+    if(!bodyEl) return;
+
+    function showError(msg){
+        bodyEl.innerHTML='<div class="alert err"><svg class="sx-ic"><use href="#sx-i-x"/></svg><div></div></div>';
+        bodyEl.querySelector(".alert div").textContent=msg;
+    }
+    function load(url){
+        var my=++ticket;
+        bodyEl.classList.add("sys-loading");
+        fetch(url,{credentials:"same-origin",headers:{"X-Sys-Embed":"1"}}).then(function(r){
+            if(r.redirected && r.url.indexOf("/system/audit-logs")<0){ window.location.href=r.url; return null; }   /* session expired */
+            if(!r.ok) throw new Error(r.status===403?"You do not have permission to view this page.":"The audit log could not be loaded (error "+r.status+").");
+            return r.text();
+        }).then(function(t){
+            if(t===null||my!==ticket) return;
+            bodyEl.innerHTML=t; loaded=true;
+        }).catch(function(e){
+            if(my===ticket) showError(e&&e.message?e.message:"Could not load the audit log.");
+        }).then(function(){ if(my===ticket) bodyEl.classList.remove("sys-loading"); });
+    }
+    function ensure(){ if(!loaded) load(BASE); }
+
+    /* pager links stay inside the panel */
+    bodyEl.addEventListener("click",function(e){
+        var a=e.target.closest?e.target.closest("a"):null;
+        if(!a||e.defaultPrevented||e.button||e.ctrlKey||e.metaKey||e.shiftKey) return;
+        var u; try{ u=new URL(a.href,window.location.href); }catch(x){ return; }
+        if(u.origin!==window.location.origin||u.pathname!==BASE) return;
+        e.preventDefault();
+        load(u.pathname+u.search);
+    });
+    /* filters are GET forms */
+    bodyEl.addEventListener("submit",function(e){
+        var f=e.target;
+        if(!f||f.tagName!=="FORM") return;
+        e.preventDefault();
+        var u=new URL(f.getAttribute("action")||BASE,window.location.href);
+        u.search=new URLSearchParams(new FormData(f)).toString();
+        load(u.pathname+u.search);
+    });
+
+    window.addEventListener("hashchange",function(){ if(window.location.hash==="#auditLogs") ensure(); });
+    document.addEventListener("DOMContentLoaded",function(){ if(window.location.hash==="#auditLogs") ensure(); });
+})();
+</script>

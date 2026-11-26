@@ -1,0 +1,92 @@
+<%
+    String cp = request.getContextPath();
+    String role = util.Security.role(session);
+    String csrf = util.Security.csrfToken(session);
+    String backHref = "ADMIN".equals(role) ? cp + "/admin" : "HR".equals(role) ? cp + "/hr"
+            : "MANAGER".equals(role) ? cp + "/managerDashboard.jsp" : cp + "/employee_dashboard.jsp";
+    String rawName = util.Security.userName(session);
+    String me = util.Html.esc(rawName == null ? "User" : rawName);
+    String initial = util.Html.esc((rawName == null || rawName.trim().isEmpty()) ? "U" : rawName.trim().substring(0, 1).toUpperCase());
+    boolean isMon = "ADMIN".equals(role) || "HR".equals(role);
+
+    /* The admin dashboard loads these pages as a fragment (X-Sys-Embed header) inside its
+       "Audit & System" section. Anyone opening a /system/* URL directly as ADMIN is sent to
+       that section; the other roles (HR / Manager / Employee) get the standalone layout below. */
+    boolean embed = "1".equals(request.getHeader("X-Sys-Embed"));
+    if (!embed && "ADMIN".equals(role)) {
+        String tab = "login".equals(active) ? "login-history" : ("dashboard".equals(active) || "errors".equals(active) || "users".equals(active) || "settings".equals(active) || "backups".equals(active)) ? active : "audit-logs";
+        response.sendRedirect(cp + "/admin?sys=" + tab + "#system");
+        return;
+    }
+%>
+<% if (embed) { %>
+<% if (pageSub != null && !pageSub.isEmpty()) { %><p class="sys-sub"><%= util.Html.esc(pageSub) %></p><% } %>
+<% } else { %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= util.Html.esc(pageTitle) %> - SmartOffice</title>
+<style>
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f1f5f9;color:#0f172a;font-size:14px;-webkit-font-smoothing:antialiased}
+.side{position:fixed;inset:0 auto 0 0;width:248px;background:linear-gradient(180deg,#0b1220 0%,#111c33 100%);color:#cbd5e1;display:flex;flex-direction:column;padding:20px 14px;z-index:30;overflow-y:auto;box-shadow:2px 0 18px rgba(15,23,42,.18);transition:transform .2s}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 10px 20px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:6px}
+.brand .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4338ca);display:grid;place-items:center;color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.4)}
+.brand strong{display:block;color:#fff;font-size:15px}.brand small{color:#64748b;font-size:11px}
+.nav-t{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;font-weight:600;padding:18px 12px 6px}
+.side a.nl{display:flex;align-items:center;gap:11px;padding:10px 12px;margin:3px 0;border-radius:9px;color:#cbd5e1;text-decoration:none;font-size:13px;border-left:3px solid transparent;transition:background .15s,color .15s}
+.side a.nl:hover{background:rgba(255,255,255,.07);color:#fff}
+.side a.nl.on{background:rgba(99,102,241,.2);color:#fff;border-left-color:#818cf8;font-weight:600}
+.side-f{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+.scrim{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:25}
+.wrap{margin-left:248px;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:14px 28px;background:#fff;border-bottom:1px solid #e2e8f0}
+.burger{display:none;width:38px;height:38px;padding:0;place-items:center;background:#f8fafc;color:#0f172a;border:1px solid #e2e8f0;border-radius:9px;cursor:pointer}
+.ttl{flex:1;min-width:0}.crumb{font-size:12px;color:#64748b}
+.topbar h1{font-size:20px;margin:2px 0 0;font-weight:700}.topbar .sub{font-size:12px;color:#64748b;margin-top:3px}
+.who{display:flex;align-items:center;gap:10px}.who strong{display:block;font-size:13px}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.who .role{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;color:#4338ca;background:rgba(79,70,229,.12);padding:2px 8px;border-radius:99px;margin-top:2px}
+main.content{padding:24px 28px 40px;max-width:1500px}
+@media(max-width:900px){.side{transform:translateX(-100%)}.side.open{transform:none}.scrim.open{display:block}.wrap{margin-left:0}.burger{display:inline-grid}.topbar{padding:12px 16px}main.content{padding:16px 14px 32px}.who .tx{display:none}}
+</style>
+</head>
+<body>
+<%@ include file="_sys_style.jspf" %>
+<div class="scrim" id="scrim"></div>
+<div class="shell">
+<aside class="side" id="side">
+  <div class="brand">
+    <div class="logo"><svg class="sx-ic"><use href="#sx-i-shield"/></svg></div>
+    <div><strong>SmartOffice</strong><small>Audit &amp; System</small></div>
+  </div>
+  <% if (isMon) { %>
+    <div class="nav-t">Overview</div>
+    <a class="nl <%= "dashboard".equals(active) ? "on" : "" %>" href="<%= cp %>/system/dashboard"><svg class="sx-ic"><use href="#sx-i-dash"/></svg>Dashboard</a>
+  <% } %>
+  <div class="nav-t">Monitoring</div>
+  <a class="nl <%= "audit".equals(active) ? "on" : "" %>" href="<%= cp %>/system/audit-logs"><svg class="sx-ic"><use href="#sx-i-file"/></svg><%= isMon ? "Audit Logs" : "My Activity" %></a>
+  <% if (isMon) { %>
+    <a class="nl <%= "login".equals(active) ? "on" : "" %>" href="<%= cp %>/system/login-history"><svg class="sx-ic"><use href="#sx-i-login"/></svg>Login History</a>
+    <a class="nl <%= "errors".equals(active) ? "on" : "" %>" href="<%= cp %>/system/errors"><svg class="sx-ic"><use href="#sx-i-alert"/></svg>System Errors</a>
+  <% } %>
+  <div class="side-f"><a class="nl" href="<%= backHref %>"><svg class="sx-ic"><use href="#sx-i-back"/></svg>Back to app</a></div>
+</aside>
+<div class="wrap">
+<header class="topbar">
+  <button type="button" class="burger" id="burger" aria-label="Open menu"><svg class="sx-ic"><use href="#sx-i-menu"/></svg></button>
+  <div class="ttl">
+    <div class="crumb">Audit &amp; System</div>
+    <h1><%= util.Html.esc(pageTitle) %></h1>
+    <div class="sub"><%= util.Html.esc(pageSub) %></div>
+  </div>
+  <div class="who">
+    <div class="avatar"><%= initial %></div>
+    <div class="tx"><strong><%= me %></strong><span class="role"><%= util.Html.esc(role) %></span></div>
+  </div>
+</header>
+<main class="content sys">
+<% } %>

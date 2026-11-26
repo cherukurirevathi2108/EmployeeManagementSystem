@@ -1,0 +1,14 @@
+<% if (!embed) { %>
+</main>
+</div>
+</div>
+<script>
+(function(){
+  var s=document.getElementById("side"),b=document.getElementById("burger"),c=document.getElementById("scrim");
+  function t(o){s.classList.toggle("open",o);c.classList.toggle("open",o);}
+  if(b)b.addEventListener("click",function(){t(!s.classList.contains("open"));});
+  if(c)c.addEventListener("click",function(){t(false);});
+})();
+</script>
+</body></html>
+<% } %>
